@@ -24,6 +24,7 @@ import { RotorWash } from '../fx/RotorWash';
 import { Searchlight } from '../fx/Searchlight';
 import { Smoke } from '../fx/Smoke';
 import { Tracers } from '../fx/Tracers';
+import { Autopilot, type PilotPhase } from '../gameplay/Autopilot';
 import { Passengers } from '../gameplay/Passengers';
 import { Fuel } from '../gameplay/Fuel';
 import { MissionManager } from '../gameplay/MissionManager';
@@ -61,6 +62,7 @@ export class Game {
   private readonly fuel = new Fuel();
   private readonly radio = new Radio();
   private readonly missions = new MissionManager();
+  private readonly autopilot = new Autopilot();
   private readonly camera = new CameraRig();
   private renderer!: Renderer;
   private world!: World;
@@ -95,13 +97,32 @@ export class Game {
   private readonly hook = new Vector3();
   private readonly door = new Vector3();
   private readonly scratch = new Vector3();
+  private titleIdle = 0;
+  private pointerEdge = false;
+  private demoRestartT = 0;
+  private pilotPhase: PilotPhase = 'lift';
+  private readonly demoBanner: HTMLElement;
+  private readonly demoLine: HTMLElement;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     ui: HTMLElement,
   ) {
     this.hud = new HUD(ui);
-    this.title = new TitleScreen(ui, (i) => this.openBriefing(i));
+    this.title = new TitleScreen(
+      ui,
+      (i) => this.openBriefing(i),
+      () => this.startDemo(),
+    );
+    this.demoBanner = document.createElement('div');
+    this.demoBanner.className = 'demo-banner hidden';
+    const demoTitle = document.createElement('strong');
+    demoTitle.textContent = 'Demo';
+    this.demoLine = document.createElement('span');
+    const demoHint = document.createElement('small');
+    demoHint.textContent = 'Any key returns to the title';
+    this.demoBanner.append(demoTitle, this.demoLine, demoHint);
+    ui.append(this.demoBanner);
     this.briefing = new Briefing(
       ui,
       () => this.startMission(),
@@ -174,7 +195,17 @@ export class Game {
       this.renderer.resize();
       this.camera.resize(window.innerWidth, window.innerHeight);
     });
-    window.addEventListener('pointerdown', () => void this.unlock());
+    window.addEventListener('pointerdown', () => {
+      this.pointerEdge = true;
+      void this.unlock();
+    });
+    window.addEventListener(
+      'wheel',
+      () => {
+        this.pointerEdge = true;
+      },
+      { passive: true },
+    );
     this.showTitle();
   }
 
@@ -189,12 +220,23 @@ export class Game {
   private tick(dt: number): void {
     this.time += dt;
     const state = this.fsm.state;
+    if (state === 'demo') {
+      if (this.input.anyEdge()) this.showTitle();
+      else this.simulate(dt);
+      this.radio.update(dt);
+      this.toastT = Math.max(0, this.toastT - dt);
+      this.pointerEdge = false;
+      return;
+    }
     if (this.input.consume('KeyM')) this.toggleMute();
     if (this.input.consume('F3')) this.renderer.showStats = !this.renderer.showStats;
     if (state === 'title') {
+      if (this.input.anyEdge() || this.pointerEdge) this.titleIdle = 0;
+      else this.titleIdle += dt;
       for (let i = 0; i < 4; i++) {
         if (this.input.consume(`Digit${i + 1}`) && i < settings.unlocked) this.openBriefing(i);
       }
+      if (this.fsm.state === 'title' && this.titleIdle >= config.demo.idleSeconds) this.startDemo();
     } else if (state === 'briefing') {
       if (this.input.consume('Enter')) this.startMission();
       if (this.input.consume('Escape')) this.showTitle();
@@ -206,19 +248,35 @@ export class Game {
     }
     this.radio.update(dt);
     this.toastT = Math.max(0, this.toastT - dt);
+    this.pointerEdge = false;
   }
 
   private simulate(dt: number): void {
     const def = this.pending;
     if (!def) return;
-    if (this.input.consume('KeyC')) this.camera.toggle();
-    if (this.input.consume('KeyE')) this.heli.toggleDoors();
-    if (this.input.consume('Space')) this.hoist.toggle();
-    if (this.input.consume('KeyL')) this.search.toggle();
-    this.flight.input.collective = this.input.axis('KeyS', 'KeyW');
-    this.flight.input.pitch = this.input.axis('ArrowDown', 'ArrowUp');
-    this.flight.input.roll = this.input.axis('KeyA', 'KeyD');
-    this.flight.input.yaw = this.input.axis('ArrowRight', 'ArrowLeft');
+    const demo = this.fsm.state === 'demo';
+    if (demo) {
+      const lz = this.missions.lz();
+      const drop = this.passengers.waiting === 0 && this.passengers.aboard > 0;
+      const target = drop ? layout.pads.hospital : lz;
+      this.pilotPhase = this.autopilot.drive(
+        this.flight,
+        this.heli,
+        this.passengers,
+        target,
+        drop,
+        Boolean(this.missions.outcome),
+      );
+    } else {
+      if (this.input.consume('KeyC')) this.camera.toggle();
+      if (this.input.consume('KeyE')) this.heli.toggleDoors();
+      if (this.input.consume('Space')) this.hoist.toggle();
+      if (this.input.consume('KeyL')) this.search.toggle();
+      this.flight.input.collective = this.input.axis('KeyS', 'KeyW');
+      this.flight.input.pitch = this.input.axis('ArrowDown', 'ArrowUp');
+      this.flight.input.roll = this.input.axis('KeyA', 'KeyD');
+      this.flight.input.yaw = this.input.axis('ArrowRight', 'ArrowLeft');
+    }
     this.flight.fuelOut = this.fuel.empty;
     this.flight.setMass(
       config.flight.emptyMass +
@@ -291,7 +349,10 @@ export class Game {
       passengers: this.passengers,
       radio: this.radio,
     });
-    if (this.missions.outcome && !this.ended) this.finish();
+    if (demo && this.missions.outcome) {
+      this.demoRestartT += dt;
+      if (this.demoRestartT >= config.demo.restartHold) this.startDemo();
+    } else if (this.missions.outcome && !this.ended) this.finish();
     this.hintT = Math.max(0, this.hintT - dt);
     if (refueling && this.fuel.amount < 0.995) this.flash('REFUELING');
     else if (def.mode === 'hoist' && this.flight.grounded && dist < 24)
@@ -321,11 +382,13 @@ export class Game {
       this.heli.pose(this.flight.pos, this.flight.quat);
       this.heli.update(frameDt, 0.45, 0);
     } else {
-      const a = state === 'playing' ? alpha : 1;
+      const a = state === 'playing' || state === 'demo' ? alpha : 1;
       this.flight.renderPose(a, this.renderPos, this.renderQuat);
       this.heli.pose(this.renderPos, this.renderQuat);
       this.heli.update(frameDt, this.flight.rpm, this.flight.damage);
-      if (state === 'playing')
+      if (state === 'demo')
+        this.camera.cinematic(frameDt, this.time, this.pilotPhase, this.renderPos, this.renderQuat);
+      else if (state === 'playing')
         this.camera.update(frameDt, this.flight, this.renderPos, this.renderQuat);
       heliPos = this.renderPos;
       wash = this.flight.rpm * this.flight.collective * (1 - smoothstep(3, 20, this.flight.agl));
@@ -350,17 +413,18 @@ export class Game {
         state === 'playing',
       );
     }
+    this.demoLine.textContent = state === 'demo' ? this.radio.line : '';
     const night = this.pending?.time === 'night';
     this.search.apply(Boolean(night) && state !== 'title');
     this.smoke.update(frameDt, this.world.weather.wind.x, this.world.weather.wind.z);
     this.flares.update(frameDt);
     this.tracers.update(frameDt);
     const thunder = this.world.update(frameDt, this.camera.camera, this.renderer.gl, heliPos, wash);
-    if (thunder && state === 'playing') this.sfx.thunder();
+    if (thunder && (state === 'playing' || state === 'demo')) this.sfx.thunder();
     this.pickMusic();
     this.audio.duck(this.radio.active ? config.audio.musicDuck : 1);
     const speed = Math.hypot(this.flight.vel.x, this.flight.vel.z);
-    if (state === 'playing') {
+    if (state === 'playing' || state === 'demo') {
       this.rotor.update(
         this.flight.rpm,
         this.flight.collective,
@@ -453,6 +517,7 @@ export class Game {
     const state = this.fsm.state;
     let track: TrackId | null = null;
     if (state === 'title' || state === 'briefing') track = 'title';
+    else if (state === 'demo') track = 'flight';
     else if ((state === 'playing' || state === 'paused') && this.pending) {
       const lz = this.missions.lz();
       const nearHot =
@@ -546,12 +611,49 @@ export class Game {
     if (this.pending) this.fsm.set('playing');
   }
 
+  private startDemo(): void {
+    const def = missions[0];
+    if (!def) return;
+    void this.unlock();
+    this.pending = def;
+    this.ended = false;
+    this.demoRestartT = 0;
+    this.titleIdle = 0;
+    this.results.hide();
+    this.pause.hide();
+    this.briefing.hide();
+    this.title.hide();
+    this.world.setTime(def.time, this.renderer.gl);
+    this.world.weather.setMode(def.weather);
+    this.placeAtBase(def);
+    this.flight.stabilizer.level = 1;
+    this.contact.reset();
+    this.heli.pose(this.flight.pos, this.flight.quat);
+    this.hoist.reset(this.heli.hook(this.hook));
+    this.fuel.reset(def.startFuel);
+    const lz = lzOf(def);
+    this.passengers.load(def, lz);
+    this.threats.clear();
+    const gy = heightAt(lz.x, lz.z);
+    this.smoke.set(lz.x, lz.z, def.smoke, gy);
+    this.flares.set(lz.x, lz.z, gy, false);
+    this.search.on = false;
+    this.missions.start(def, this.radio);
+    this.pilotPhase = this.autopilot.reset();
+    this.camera.mode = 'chase';
+    this.camera.cinematic(0, this.time, this.pilotPhase, this.flight.pos, this.flight.quat, true);
+    this.demoBanner.classList.remove('hidden');
+    this.fsm.set('demo');
+  }
+
   private showTitle(): void {
     this.fsm.set('title');
+    this.titleIdle = 0;
     this.pending = null;
     this.briefing.hide();
     this.results.hide();
     this.pause.hide();
+    this.demoBanner.classList.add('hidden');
     this.passengers.clear();
     this.threats.clear();
     this.smoke.set(0, 0, 'off', 0);

@@ -351,6 +351,41 @@ button.primary {
   display: none !important;
 }
 
+.demo-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: none;
+  text-align: center;
+  color: #f4efe4;
+  text-shadow: 0 2px 10px #000;
+  letter-spacing: 0.14em;
+}
+.demo-banner strong {
+  display: block;
+  font-family: 'Stardos Stencil', serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--amber);
+}
+.demo-banner span {
+  display: block;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+  font-size: 16px;
+  min-height: 1.2em;
+}
+.demo-banner small {
+  display: block;
+  margin-top: 4px;
+  color: var(--amber-dim);
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
 .medal {
   font-family: 'Stardos Stencil', serif;
   font-size: 26px;

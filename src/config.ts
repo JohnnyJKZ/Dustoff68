@@ -123,6 +123,8 @@ export const config = {
     chaseLambda: 3.4,
     cockpit: [0.28, 0.38, 1.15] as const,
   },
+
+  demo: { idleSeconds: 20, restartHold: 3.2 },
 } as const;
 
 export type AssistLevel = 0 | 1 | 2;

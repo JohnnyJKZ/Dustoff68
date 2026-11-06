@@ -1,4 +1,5 @@
-export type GameState = 'title' | 'briefing' | 'playing' | 'paused' | 'complete' | 'failed';
+export type GameState =
+  'title' | 'briefing' | 'playing' | 'paused' | 'complete' | 'failed' | 'demo';
 
 export interface EventMap {
   stateChange: { from: GameState; to: GameState };

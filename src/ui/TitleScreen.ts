@@ -9,6 +9,7 @@ export class TitleScreen {
   constructor(
     parent: HTMLElement,
     private readonly onPlay: (index: number) => void,
+    onDemo: () => void,
   ) {
     this.root = document.createElement('div');
     this.root.className = 'title';
@@ -31,6 +32,10 @@ export class TitleScreen {
       btn.addEventListener('click', () => this.onPlay(i));
       menu.append(btn);
     });
+    const demo = document.createElement('button');
+    demo.textContent = 'Watch demo';
+    demo.addEventListener('click', () => onDemo());
+    menu.append(demo);
     this.assist = document.createElement('select');
     for (const [id, label] of [
       ['0', 'Assist off'],

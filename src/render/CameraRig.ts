@@ -1,7 +1,19 @@
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { config } from '../config';
 import type { FlightModel } from '../flight/FlightModel';
+import type { PilotPhase } from '../gameplay/Autopilot';
 import { heightAt } from '../world/heightfield';
+
+const CINEMA: Record<
+  PilotPhase,
+  { back: number; up: number; side: number; ahead: number; orbit: number }
+> = {
+  lift: { back: 16, up: 5.5, side: 7, ahead: 6, orbit: 0.12 },
+  cruise: { back: 26, up: 11, side: 18, ahead: 14, orbit: 0.08 },
+  approach: { back: 8, up: 16, side: 20, ahead: 10, orbit: 0.05 },
+  settle: { back: 14, up: 4.2, side: 10, ahead: 4, orbit: 0.06 },
+  board: { back: 11, up: 4.8, side: 13, ahead: 2, orbit: 0.2 },
+};
 
 export class CameraRig {
   readonly camera = new PerspectiveCamera(60, 1, 0.2, 14000);
@@ -53,6 +65,34 @@ export class CameraRig {
     this.look.y += config.camera.chaseLook;
     this.camera.lookAt(this.look);
     this.camera.rotateZ(-flight.roll * 0.25);
+  }
+
+  /** Slow blends between scripted offsets. `snap` jumps, used when the demo starts. */
+  cinematic(
+    dt: number,
+    time: number,
+    phase: PilotPhase,
+    pos: Vector3,
+    quat: Quaternion,
+    snap = false,
+  ): void {
+    const shot = CINEMA[phase];
+    const swing = Math.sin(time * shot.orbit);
+    this.desired.set(shot.side * swing, shot.up, -shot.back);
+    this.desired.applyQuaternion(quat).add(pos);
+    const floor = heightAt(this.desired.x, this.desired.z) + 2.4;
+    if (this.desired.y < floor) this.desired.y = floor;
+    if (snap) this.chase.copy(this.desired);
+    else {
+      const k = 1 - Math.exp(-1.35 * dt);
+      this.chase.lerp(this.desired, k);
+    }
+    this.camera.up.set(0, 1, 0);
+    this.camera.position.copy(this.chase);
+    this.forward.set(0, 0, 1).applyQuaternion(quat);
+    this.look.copy(pos).addScaledVector(this.forward, shot.ahead);
+    this.look.y += 1.4;
+    this.camera.lookAt(this.look);
   }
 
   orbit(time: number, x: number, y: number, z: number, radius: number, height: number): void {

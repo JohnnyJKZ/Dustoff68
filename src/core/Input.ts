@@ -19,6 +19,10 @@ export class Input {
     });
   }
 
+  anyEdge(): boolean {
+    return this.edges.size > 0;
+  }
+
   consume(code: string): boolean {
     if (!this.edges.has(code)) return false;
     this.edges.delete(code);
