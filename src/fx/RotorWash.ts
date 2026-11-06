@@ -29,10 +29,10 @@ export class RotorWash {
   private readonly sprayLife: Float32Array;
 
   constructor() {
-    this.dustLife = new Float32Array(80);
-    this.sprayLife = new Float32Array(60);
-    this.dust = this.make(this.dustLife, '#c4a574', 0.7);
-    this.spray = this.make(this.sprayLife, '#d5e4ea', 0.55);
+    this.dustLife = new Float32Array(160);
+    this.sprayLife = new Float32Array(90);
+    this.dust = this.make(this.dustLife, '#c4a574', 1.6);
+    this.spray = this.make(this.sprayLife, '#d5e4ea', 1.15);
   }
 
   private make(life: Float32Array, color: string, size: number): Points {
@@ -80,7 +80,8 @@ export class RotorWash {
     alpha: number,
   ): void {
     const mat = points.material as PointsMaterial;
-    mat.opacity = strength * alpha;
+    const landing = agl < 2.4 ? 1.35 : 1;
+    mat.opacity = Math.min(0.85, strength * alpha * landing);
     const attr = points.geometry.getAttribute('position');
     const arr = attr.array as Float32Array;
     const ground = y - agl;

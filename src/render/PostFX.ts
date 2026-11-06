@@ -31,7 +31,8 @@ export class PostFX {
     this.composer.addPass(new RenderPass(scene, camera));
     this.warmLut = makeLut(1);
     this.coolLut = makeLut(0.15);
-    this.grade = new LUT3DEffect(this.warmLut, { blendFunction: BlendFunction.SET });
+    this.grade = new LUT3DEffect(this.warmLut, { blendFunction: BlendFunction.NORMAL });
+    this.grade.blendMode.opacity.value = 0.12;
 
     const bloom = new BloomEffect({
       intensity: 0.55,
@@ -40,16 +41,16 @@ export class PostFX {
       mipmapBlur: true,
       radius: 0.55,
     });
-    const smaa = new SMAAEffect({ preset: SMAAPreset.MEDIUM });
-    const vignette = new VignetteEffect({ darkness: 0.52, offset: 0.28 });
+    const smaa = new SMAAEffect({ preset: SMAAPreset.HIGH });
+    const vignette = new VignetteEffect({ darkness: 0.28, offset: 0.4 });
     const noise = new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
-    noise.blendMode.opacity.value = 0.18;
+    noise.blendMode.opacity.value = 0.04;
     const chroma = new ChromaticAberrationEffect({
       offset: new Vector2(0.0004, 0.0004),
       radialModulation: true,
       modulationOffset: 0.4,
     });
-    const tone = new ToneMappingEffect({ mode: ToneMappingMode.AGX });
+    const tone = new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC });
 
     try {
       this.godrays = new GodRaysEffect(camera, sun, {
@@ -57,8 +58,8 @@ export class PostFX {
         samples: 40,
         density: 0.94,
         decay: 0.95,
-        weight: 0.28,
-        exposure: 0.32,
+        weight: 0.18,
+        exposure: 0.16,
         clampMax: 0.9,
         resolutionScale: 0.5,
         kernelSize: KernelSize.SMALL,

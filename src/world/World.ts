@@ -45,22 +45,22 @@ export class World {
   constructor(renderer: WebGLRenderer, onProgress: (s: string) => void) {
     onProgress('Reading the map…');
     initWorld();
-    this.scene.fog = new FogExp2('#c4783a', 0.0011);
-    this.sun = new DirectionalLight('#ff9a3a', 4.4);
+    this.scene.fog = new FogExp2('#e7c48a', 0.00022);
+    this.sun = new DirectionalLight('#ffb04a', 6.2);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
-    this.sun.shadow.camera.near = 8;
-    this.sun.shadow.camera.far = 420;
-    this.sun.shadow.camera.left = -110;
-    this.sun.shadow.camera.right = 110;
-    this.sun.shadow.camera.top = 110;
-    this.sun.shadow.camera.bottom = -110;
-    this.sun.shadow.bias = -0.00025;
-    this.sun.shadow.normalBias = 0.035;
+    this.sun.shadow.camera.near = 4;
+    this.sun.shadow.camera.far = 280;
+    this.sun.shadow.camera.left = -70;
+    this.sun.shadow.camera.right = 70;
+    this.sun.shadow.camera.top = 70;
+    this.sun.shadow.camera.bottom = -70;
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.04;
     this.scene.add(this.sun, this.sun.target);
 
-    this.hemi = new HemisphereLight('#ffb56a', '#1a2412', 0.85);
-    this.ambient = new AmbientLight('#fff4e5', 0.28);
+    this.hemi = new HemisphereLight('#8eb0d4', '#1a3a18', 0.72);
+    this.ambient = new AmbientLight('#fff1dc', 0.22);
     this.scene.add(this.hemi, this.ambient);
 
     this.sky = new Sky();
@@ -164,7 +164,7 @@ export class World {
     const struck = this.weather.update(dt);
 
     const follow = heli.lengthSq() > 1 ? heli : camera.position;
-    this.sun.position.copy(follow).addScaledVector(shared.uSunDir.value, 180);
+    this.sun.position.copy(follow).addScaledVector(shared.uSunDir.value, 260);
     this.sun.target.position.copy(follow);
     this.sunMesh.position.copy(follow).addScaledVector(shared.uSunDir.value, 1400);
 

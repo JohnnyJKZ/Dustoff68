@@ -23,7 +23,9 @@ import { armyTextTexture, crossTexture, rotorBlurTexture } from './markings';
 import { bladeAmount, blurAmount } from './RotorBlur';
 
 const olive = () =>
-  new MeshStandardMaterial({ color: '#3c4334', roughness: 0.62, metalness: 0.18 });
+  new MeshStandardMaterial({ color: '#4a5336', roughness: 0.58, metalness: 0.12 });
+const whitePanel = () =>
+  new MeshStandardMaterial({ color: '#efe8d6', roughness: 0.45, metalness: 0.04 });
 const dark = () => new MeshStandardMaterial({ color: '#23261f', roughness: 0.55, metalness: 0.35 });
 const glassMat = () =>
   new MeshStandardMaterial({
@@ -43,6 +45,7 @@ export class HueyModel {
   private readonly mainPivot = new Group();
   private readonly tailPivot = new Group();
   private readonly blur: Mesh;
+  private readonly tailBlur: Mesh;
   private readonly blades: Mesh[] = [];
   private readonly doorL: Group;
   private readonly doorR: Group;
@@ -56,32 +59,52 @@ export class HueyModel {
     const shade = dark();
     const glass = glassMat();
 
-    const cabin = new Mesh(new BoxGeometry(2.05, 1.5, 3.1), body);
-    cabin.position.set(0, 0.15, 0.35);
-    const nose = new Mesh(new SphereGeometry(0.92, 18, 12), body);
-    nose.scale.set(1.12, 0.95, 1.35);
-    nose.position.set(0, 0.05, 2.15);
-    const belly = new Mesh(new BoxGeometry(1.7, 0.35, 2.6), shade);
-    belly.position.set(0, -0.7, 0.4);
-    const boom = new Mesh(new CylinderGeometry(0.22, 0.38, 6.4, 10), body);
+    const cabin = new Mesh(new BoxGeometry(1.72, 1.28, 3.55), body);
+    cabin.position.set(0, 0.12, 0.15);
+    const roof = new Mesh(new BoxGeometry(2.2, 0.14, 3.7), body);
+    roof.position.set(0, 0.78, 0.2);
+    const band = new Mesh(new BoxGeometry(2.22, 0.36, 2.35), whitePanel());
+    band.position.set(0, 0.48, 0.05);
+    const nose = new Mesh(new SphereGeometry(0.98, 20, 14), body);
+    nose.scale.set(1.08, 0.86, 1.45);
+    nose.position.set(0, 0.02, 2.05);
+    const belly = new Mesh(new BoxGeometry(1.55, 0.32, 3.1), shade);
+    belly.position.set(0, -0.62, 0.25);
+    const boom = new Mesh(new CylinderGeometry(0.14, 0.28, 7.4, 10), body);
     boom.rotation.x = Math.PI / 2;
-    boom.position.set(0, 0.28, -3.55);
-    const fin = new Mesh(new BoxGeometry(0.12, 1.35, 0.9), body);
-    fin.position.set(0, 0.95, -6.45);
-    const stabL = new Mesh(new BoxGeometry(1.3, 0.08, 0.38), body);
-    stabL.position.set(-0.7, 0.45, -6.2);
+    boom.position.set(0, 0.46, -4.15);
+    const fin = new Mesh(new BoxGeometry(0.1, 1.55, 0.85), body);
+    fin.position.set(0, 1.15, -7.55);
+    const stabL = new Mesh(new BoxGeometry(1.45, 0.07, 0.36), body);
+    stabL.position.set(-0.78, 0.52, -7.15);
     const stabR = stabL.clone();
-    stabR.position.x = 0.7;
+    stabR.position.x = 0.78;
 
-    const pit = new Mesh(new BoxGeometry(1.7, 0.9, 0.08), glass);
-    pit.position.set(0, 0.25, 3.05);
-    pit.rotation.x = -0.15;
-    const sideGlassL = new Mesh(new BoxGeometry(0.06, 0.7, 1.3), glass);
-    sideGlassL.position.set(-1.02, 0.35, 1.55);
+    const pit = new Mesh(new SphereGeometry(0.95, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), glass);
+    pit.scale.set(1.05, 0.72, 1.2);
+    pit.position.set(0, 0.18, 2.55);
+    const sideGlassL = new Mesh(new BoxGeometry(0.05, 0.62, 1.15), glass);
+    sideGlassL.position.set(-1.02, 0.42, 1.7);
     const sideGlassR = sideGlassL.clone();
     sideGlassR.position.x = 1.02;
+    const interior = new Mesh(new BoxGeometry(1.45, 0.9, 2.2), shade);
+    interior.position.set(0, 0.05, -0.15);
 
-    this.root.add(cabin, nose, belly, boom, fin, stabL, stabR, pit, sideGlassL, sideGlassR);
+    this.root.add(
+      cabin,
+      roof,
+      band,
+      nose,
+      belly,
+      boom,
+      fin,
+      stabL,
+      stabR,
+      pit,
+      sideGlassL,
+      sideGlassR,
+      interior,
+    );
 
     this.addSkid(-0.85);
     this.addSkid(0.85);
@@ -113,7 +136,19 @@ export class HueyModel {
     this.mainPivot.add(this.blur);
     this.root.add(this.mainPivot);
 
-    this.tailPivot.position.set(0.15, 0.55, -6.5);
+    this.tailPivot.position.set(0.18, 0.62, -7.7);
+    this.tailBlur = new Mesh(
+      new PlaneGeometry(1.7, 1.7),
+      new MeshBasicMaterial({
+        map: rotorBlurTexture(),
+        transparent: true,
+        depthWrite: false,
+        opacity: 0,
+      }),
+    );
+    this.tailBlur.rotation.y = Math.PI / 2;
+    this.tailBlur.userData.noShadow = true;
+    this.tailPivot.add(this.tailBlur);
     const tBlade = new BoxGeometry(0.16, 1.5, 0.08);
     for (let i = 0; i < 2; i++) {
       const b = new Mesh(tBlade, shade);
@@ -130,24 +165,24 @@ export class HueyModel {
       polygonOffset: true,
       polygonOffsetFactor: -1,
     });
-    const noseCross = new Mesh(new PlaneGeometry(0.7, 0.7), crossMat);
-    noseCross.position.set(0, 0.05, 3.35);
-    const doorCrossL = new Mesh(new PlaneGeometry(0.55, 0.55), crossMat);
-    doorCrossL.position.set(-1.08, 0.05, 0.15);
+    const noseCross = new Mesh(new PlaneGeometry(0.72, 0.72), crossMat);
+    noseCross.position.set(0, 0.08, 3.42);
+    const doorCrossL = new Mesh(new PlaneGeometry(0.62, 0.62), crossMat);
+    doorCrossL.position.set(-1.12, 0.48, 0.05);
     doorCrossL.rotation.y = -Math.PI / 2;
     const doorCrossR = doorCrossL.clone();
-    doorCrossR.position.x = 1.08;
+    doorCrossR.position.x = 1.12;
     doorCrossR.rotation.y = Math.PI / 2;
-    const roofCross = new Mesh(new PlaneGeometry(0.8, 0.8), crossMat);
+    const roofCross = new Mesh(new PlaneGeometry(0.85, 0.85), crossMat);
     roofCross.rotation.x = -Math.PI / 2;
-    roofCross.position.set(0, 0.92, 0.4);
+    roofCross.position.set(0, 0.86, 0.15);
     this.root.add(noseCross, doorCrossL, doorCrossR, roofCross);
 
     const army = new Mesh(
       new PlaneGeometry(2.4, 0.28),
       new MeshStandardMaterial({ map: armyTextTexture(), roughness: 0.7 }),
     );
-    army.position.set(0, 0.42, -3.3);
+    army.position.set(0, 0.46, -4.4);
     army.rotation.y = Math.PI / 2;
     const army2 = army.clone();
     army2.rotation.y = -Math.PI / 2;
@@ -176,7 +211,7 @@ export class HueyModel {
 
     this.nav(-1.05, 0.2, 0.8, '#ff3030');
     this.nav(1.05, 0.2, 0.8, '#30ff60');
-    this.nav(0, 1.05, -6.5, '#fff6d0');
+    this.nav(0, 1.35, -7.7, '#fff6d0');
 
     this.search = new SpotLight('#fff3cc', 0, 170, 0.42, 0.4, 1);
     this.search.position.set(0, -0.15, 2.6);
@@ -266,7 +301,8 @@ export class HueyModel {
     this.tailPivot.rotation.x += rpm * 95 * dt;
     const blur = blurAmount(rpm);
     const blades = bladeAmount(rpm);
-    (this.blur.material as MeshBasicMaterial).opacity = blur * 0.82;
+    (this.blur.material as MeshBasicMaterial).opacity = blur * 0.92;
+    (this.tailBlur.material as MeshBasicMaterial).opacity = blur * 0.75;
     for (const b of this.blades) b.visible = blades > 0.08;
     this.doorAmount += ((this.doorsOpen ? 1 : 0) - this.doorAmount) * Math.min(1, dt * 6);
     this.doorL.rotation.y = -this.doorAmount * 1.25;

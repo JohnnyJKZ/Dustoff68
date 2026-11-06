@@ -463,8 +463,8 @@ export class Game {
         markers.push({ label: s.label, rel, dist, primary: s.primary });
       }
     }
-    const souls = this.passengers.souls.map((s) => ({
-      label: `${s.civilian ? 'CIV' : 'GI'} ${s.triage.toUpperCase()}`,
+    const souls = this.passengers.souls.map((s, i) => ({
+      label: `${s.civilian ? 'CIV' : 'GI'} ${i + 1} ${s.triage.toUpperCase()}`,
       triage: s.triage,
       timer: s.timer,
       state: s.state,

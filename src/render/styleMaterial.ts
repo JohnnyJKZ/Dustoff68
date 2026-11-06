@@ -28,12 +28,12 @@ const FOG = /* glsl */ `
   float hFogH = max(vHFogWorld.y - uFogHeight, 0.0);
   float hFogD = distance(vHFogWorld, uCamPos);
   float hFogDens = uFogDensity * exp(-hFogH * uFogFalloff);
-  float hFog = 1.0 - exp(-hFogD * hFogDens);
+  float hFog = 1.0 - exp(-max(hFogD - 90.0, 0.0) * hFogDens);
   vec3 hView = normalize(vHFogWorld - uCamPos);
-  float hSun = pow(max(dot(hView, normalize(uSunDir)), 0.0), 7.0);
-  vec3 hFogCol = mix(uFogColor, uSunColor, hSun * 0.7);
+  float hSun = pow(max(dot(hView, normalize(uSunDir)), 0.0), 8.0);
+  vec3 hFogCol = mix(uFogColor, uSunColor, hSun * 0.55);
   hFogCol += uSunColor * uFlash * 0.35;
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, hFogCol, clamp(hFog, 0.0, 0.82));
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, hFogCol, clamp(hFog, 0.0, 0.62));
 `;
 
 function assign(shader: { uniforms: Record<string, { value: unknown }> }): void {
@@ -80,8 +80,8 @@ export function styleMaterial(material: Material, kind: 'terrain' | 'foliage' | 
       float distW = length(away);
       float inf = (1.0 - smoothstep(2.0, uWashRadius, distW)) * uWash;
       vec2 dir = distW > 0.001 ? away / distW : vec2(1.0, 0.0);
-      hWorld.xz += dir * inf * transformed.y * 0.62;
-      hWorld.y -= inf * transformed.y * 0.18;
+      hWorld.xz += dir * inf * transformed.y * 1.35;
+      hWorld.y -= inf * transformed.y * 0.42;
       `
           : ''
       }
@@ -96,11 +96,16 @@ export function styleMaterial(material: Material, kind: 'terrain' | 'foliage' | 
         '#include <color_fragment>',
         /* glsl */ `
         #include <color_fragment>
-        float grit = fract(sin(dot(vHFogWorld.xz, vec2(12.9898, 78.233))) * 43758.5453);
-        diffuseColor.rgb *= mix(0.86, 1.1, grit);
-        float ao = smoothstep(0.15, 0.92, vSlopeY);
-        diffuseColor.rgb *= mix(0.62, 1.0, ao);
-        diffuseColor.rgb *= mix(1.0, 0.58, uWet);
+        float hPatch = fract(sin(dot(vHFogWorld.xz, vec2(0.37, 0.19))) * 43758.5453);
+        diffuseColor.rgb *= mix(0.96, 1.06, hPatch);
+        float pathN = sin(vHFogWorld.x * 0.007 + sin(vHFogWorld.z * 0.005) * 2.4);
+        float path = smoothstep(0.93, 0.99, pathN) * smoothstep(0.8, 0.98, vSlopeY);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.28, 0.13), path * 0.7);
+        float rock = 1.0 - smoothstep(0.28, 0.72, vSlopeY);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.45, 0.4, 0.34), rock * 0.85);
+        float ao = smoothstep(0.35, 0.95, vSlopeY);
+        diffuseColor.rgb *= mix(0.82, 1.0, ao);
+        diffuseColor.rgb *= mix(1.0, 0.75, uWet);
         `,
       );
     }

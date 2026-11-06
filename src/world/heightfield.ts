@@ -136,12 +136,13 @@ function terrainRaw(x: number, z: number): Raw {
   const edge = Math.max(Math.abs(x), Math.abs(z));
   const border = smoothstep(1480, 2040, edge);
   const n = fbm(x * 0.00052, z * 0.00052, 5);
-  const r = ridged(x * 0.0003, z * 0.0003, 4);
-  const detail = fbm(x * 0.0034, z * 0.0034, 3);
-  let h = 18 + n * 16 + r * 48 + detail * 1.15;
+  const r = ridged(x * 0.00028, z * 0.00028, 4);
+  const roll = fbm(x * 0.0017, z * 0.0017, 4) - 0.42;
+  const detail = fbm(x * 0.0042, z * 0.0042, 3);
+  let h = 14 + n * 22 + r * 34 + roll * 16 + detail * 2.6;
 
   const rv = closestRiver(x, z);
-  const valley = 1 - smoothstep(20, 560, rv.dist);
+  const valley = 1 - smoothstep(24, 160, rv.dist);
   const bed = 6.5 + rv.t * 2.4;
   h = lerp(h, bed + 5 + rv.dist * 0.028, valley * 0.88);
 

@@ -43,7 +43,7 @@ export class Renderer {
   resize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const ratio = Math.min(window.devicePixelRatio || 1, this.adaptive.scale);
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
     this.gl.setPixelRatio(ratio);
     this.gl.setSize(w, h, false);
     this.post?.setSize(w, h);
@@ -57,7 +57,7 @@ export class Renderer {
       this.fpsAcc = 0;
       this.fpsN = 0;
     }
-    if (this.adaptive.sample(frameMs)) this.resize();
+    this.adaptive.sample(frameMs);
     this.post?.render();
   }
 }

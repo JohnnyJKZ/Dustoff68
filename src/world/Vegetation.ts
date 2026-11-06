@@ -54,8 +54,12 @@ export class Vegetation {
   private readonly buckets: InstancedMesh[] = [];
   private grass: InstancedMesh | null = null;
   private rice: InstancedMesh | null = null;
+  private bush: InstancedMesh | null = null;
+  private canopy: InstancedMesh | null = null;
+  private under: InstancedMesh | null = null;
   private grassRecs: TreeRec[] = [];
   private riceRecs: TreeRec[] = [];
+  private bushRecs: TreeRec[] = [];
   private grassCam = new Vector3(1e9, 0, 1e9);
 
   constructor(renderer: WebGLRenderer) {
@@ -65,8 +69,9 @@ export class Vegetation {
     const bamboo = makeBamboo();
     const broadImp = makeImpostor(renderer, broad);
     const palmImp = makeImpostor(renderer, palm);
-    const grassGeo = makeGrass(new Color('#6a9a3e'), 1.3, 0.55);
-    const riceGeo = makeGrass(new Color('#d2c15a'), 0.7, 0.35);
+    const grassGeo = makeGrass(new Color('#7cb84a'), 1.5, 0.62);
+    const riceGeo = makeGrass(new Color('#d2c15a'), 0.85, 0.4);
+    const bushGeo = makeBush();
 
     const foliage = (geo: BufferGeometry, cap: number, mapMat?: MeshStandardMaterial) => {
       const mat =
@@ -111,7 +116,10 @@ export class Vegetation {
     ];
     this.grass = foliage(grassGeo, config.graphics.grassCap);
     this.rice = foliage(riceGeo, config.graphics.riceCap);
-    this.meshes.push(...this.buckets, this.grass, this.rice);
+    this.bush = foliage(bushGeo, 3600);
+    this.canopy = foliage(makeBroadleaf(0), 2600);
+    this.under = foliage(bushGeo, 2800);
+    this.meshes.push(...this.buckets, this.grass, this.rice, this.bush, this.canopy, this.under);
     this.scatter();
   }
 
@@ -175,7 +183,49 @@ export class Vegetation {
       this.grassCam.set(camX, 0, camZ);
       this.fillNear(this.grass, this.grassRecs, camX, camZ, config.graphics.grassRadius);
       this.fillNear(this.rice, this.riceRecs, camX, camZ, 260);
+      this.fillNear(this.bush, this.bushRecs, camX, camZ, config.graphics.midDist);
+      this.fillForest(camX, camZ);
     }
+  }
+
+  private fillForest(camX: number, camZ: number): void {
+    const trees = this.canopy;
+    const bushes = this.under;
+    if (!trees || !bushes) return;
+    const tArr = trees.instanceMatrix.array as Float32Array;
+    const bArr = bushes.instanceMatrix.array as Float32Array;
+    const step = 9;
+    const radius = 240;
+    let nt = 0;
+    let nb = 0;
+    const tCap = trees.instanceMatrix.count;
+    const bCap = bushes.instanceMatrix.count;
+    const x0 = Math.floor((camX - radius) / step) * step;
+    const z0 = Math.floor((camZ - radius) / step) * step;
+    for (let z = z0; z <= camZ + radius; z += step) {
+      for (let x = x0; x <= camX + radius; x += step) {
+        const hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+        const jx = x + (hsh - 0.5) * step * 0.8;
+        const jz = z + (((hsh * 13.7) % 1) - 0.5) * step * 0.8;
+        if (Math.hypot(jx - camX, jz - camZ) > radius) continue;
+        const s = cover(jx, jz);
+        if (s.deep || s.pad > 0.28 || s.paddy > 0.6) continue;
+        const rot = hsh * Math.PI * 2;
+        if (hsh < 0.62 && nt < tCap) {
+          writeMat(tArr, nt, jx, s.height, jz, rot, 0.9 + hsh * 1.15);
+          nt++;
+        } else if (hsh < 0.9 && nb < bCap) {
+          writeMat(bArr, nb, jx, s.height, jz, rot, 0.7 + hsh);
+          nb++;
+        }
+      }
+    }
+    trees.count = nt;
+    bushes.count = nb;
+    trees.instanceMatrix.needsUpdate = true;
+    bushes.instanceMatrix.needsUpdate = true;
+    trees.visible = nt > 0;
+    bushes.visible = nb > 0;
   }
 
   private fillNear(
@@ -203,7 +253,7 @@ export class Vegetation {
   private scatter(): void {
     const rand = mulberry32(1968);
     const extent = 1880;
-    const step = 22;
+    const step = 16;
     const picked: TreeRec[] = [];
     for (let z = -extent; z <= extent; z += step) {
       for (let x = -extent; x <= extent; x += step) {
@@ -214,19 +264,30 @@ export class Vegetation {
         const nearBank = s.valley > 0.42 && s.mud > 0.25 && !s.deep;
         let kind = 0;
         let chance = 0;
-        if (nearBank && rand() < 0.65) {
+        if (nearBank && rand() < 0.7) {
           kind = 1;
-          chance = 0.72;
-        } else if (s.jungle > 0.28) {
-          kind = rand() < 0.14 ? 2 : 0;
-          chance = 0.34 + s.jungle * 0.28;
-        } else if (s.valley > 0.35) {
+          chance = 0.82;
+        } else if (s.jungle > 0.22) {
           kind = rand() < 0.16 ? 2 : 0;
-          chance = 0.16;
+          chance = 0.72 + s.jungle * 0.22;
+        } else if (s.valley > 0.25) {
+          kind = rand() < 0.28 ? 1 : 0;
+          chance = 0.58;
         }
-        if (rand() > chance) continue;
-        const scale = kind === 1 ? 0.85 + rand() * 0.55 : 0.7 + rand() * 0.75;
-        picked.push({ x: jx, y: s.height, z: jz, rot: rand() * Math.PI * 2, scale, kind });
+        if (rand() <= chance) {
+          const scale = kind === 1 ? 1.05 + rand() * 0.85 : 0.95 + rand() * 1.15;
+          picked.push({ x: jx, y: s.height, z: jz, rot: rand() * Math.PI * 2, scale, kind });
+        }
+        if (rand() < 0.55 && this.bushRecs.length < 14000) {
+          this.bushRecs.push({
+            x: jx + (rand() - 0.5) * 6,
+            y: s.height,
+            z: jz + (rand() - 0.5) * 6,
+            rot: rand() * Math.PI * 2,
+            scale: 0.9 + rand() * 1.1,
+            kind: 3,
+          });
+        }
       }
     }
     const cap = config.graphics.treeCap;
@@ -257,10 +318,10 @@ export class Vegetation {
       list.push(idx);
     }
 
-    const gstep = 14;
+    const gstep = 11;
     for (let z = -extent; z <= extent; z += gstep) {
       for (let x = -extent; x <= extent; x += gstep) {
-        if (rand() > 0.62) continue;
+        if (rand() > 0.78) continue;
         const jx = x + (rand() - 0.5) * gstep;
         const jz = z + (rand() - 0.5) * gstep;
         const s = cover(jx, jz);
@@ -347,11 +408,14 @@ function makeBroadleaf(detail: number): BufferGeometry {
   const crown = new IcosahedronGeometry(2.35, detail);
   crown.scale(1.25, 0.72, 1.25);
   crown.translate(0, 5.0, 0);
-  paint(crown, new Color('#3e8f46'), 8);
-  const crown2 = new IcosahedronGeometry(1.45, 0);
-  crown2.translate(1.1, 6.1, 0.2);
-  paint(crown2, new Color('#2f6e38'), 6);
-  return mergeParts([trunk, crown, crown2], 'tree');
+  paint(crown, new Color('#3faa4c'), 14);
+  const crown2 = new IcosahedronGeometry(1.55, 0);
+  crown2.translate(1.15, 6.3, 0.3);
+  paint(crown2, new Color('#1f7a34'), 10);
+  const crown3 = new IcosahedronGeometry(1.15, 0);
+  crown3.translate(-0.9, 5.6, -0.5);
+  paint(crown3, new Color('#67c45a'), 8);
+  return mergeParts([trunk, crown, crown2, crown3], 'tree');
 }
 
 function makePalm(): BufferGeometry {
@@ -388,6 +452,18 @@ function makeBamboo(): BufferGeometry {
     parts.push(culm);
   }
   return mergeParts(parts, 'bamboo');
+}
+
+function makeBush(): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const colors = ['#2f8a3c', '#4caf50', '#1d6b30', '#78c25a'];
+  for (let i = 0; i < 3; i++) {
+    const blob = new IcosahedronGeometry(0.7 + (i % 2) * 0.25, 0);
+    blob.translate((i - 1) * 0.45, 0.7 + i * 0.15, (i % 2) * 0.3);
+    paint(blob, new Color(colors[i % colors.length]!), 10);
+    parts.push(blob);
+  }
+  return mergeParts(parts, 'bush');
 }
 
 function makeGrass(color: Color, h: number, w: number): BufferGeometry {

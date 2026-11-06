@@ -244,7 +244,7 @@ button.primary {
   left: 50%;
   transform: translateX(-50%);
   width: min(520px, 70vw);
-  height: 46px;
+  height: 62px;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(to bottom, rgba(10, 8, 6, 0.55), transparent);
@@ -262,14 +262,14 @@ button.primary {
 .compass-caret {
   position: absolute;
   left: 50%;
-  bottom: 2px;
+  top: 20px;
   transform: translateX(-50%);
   font-size: 11px;
   letter-spacing: 0.12em;
 }
 .wp {
   position: absolute;
-  top: 22px;
+  top: 38px;
   font-size: 11px;
   color: var(--good);
   transform: translateX(-50%);

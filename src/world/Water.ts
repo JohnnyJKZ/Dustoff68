@@ -62,8 +62,8 @@ void main() {
   vec3 view = normalize(uCamPos - vWorld);
   float fres = pow(1.0 - max(dot(view, n), 0.0), 3.0);
   vec3 sky = textureCube(uEnv, reflect(-view, n)).rgb;
-  vec3 waterCol = mix(vec3(0.55, 0.62, 0.32), vec3(0.15, 0.28, 0.22), vDeep);
-  waterCol = mix(waterCol, uSunColor, 0.18 * (1.0 - uNight));
+  vec3 waterCol = mix(vec3(0.45, 0.62, 0.28), vec3(0.08, 0.32, 0.28), vDeep);
+  waterCol = mix(waterCol, uSunColor, 0.28 * (1.0 - uNight));
   vec2 ruv = vec2(0.0);
   vec3 planar = sky;
   if (uHasRefl > 0.5) {
@@ -75,7 +75,7 @@ void main() {
     }
   }
   vec3 refl = mix(sky, planar, uHasRefl);
-  vec3 col = mix(waterCol, refl, fres * 0.75 + 0.08);
+  vec3 col = mix(waterCol, refl, fres * 0.85 + 0.16);
   float glint = pow(max(dot(reflect(-view, n), normalize(uSunDir)), 0.0), 90.0);
   col += uSunColor * glint * (1.0 - uNight);
   float fogD = distance(vWorld, uCamPos);

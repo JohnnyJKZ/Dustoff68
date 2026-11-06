@@ -24,39 +24,39 @@ export interface SkyPreset {
 export const presets: Record<TimePreset, SkyPreset> = {
   sunset: {
     id: 'sunset',
-    sunDir: new Vector3(0.62, 0.17, -0.77).normalize(),
-    sunColor: '#ff9a3a',
-    sunIntensity: 4.4,
-    hemiSky: '#ffb56a',
-    hemiGround: '#1a2412',
-    ambient: 0.28,
-    fog: '#c56a32',
-    fogDensity: 0.00102,
-    fogHeight: 42,
-    skyTop: '#24344e',
-    skyHorizon: '#ffb15a',
-    skyBottom: '#6a3818',
-    cloud: 0.62,
+    sunDir: new Vector3(0.55, 0.1, -0.83).normalize(),
+    sunColor: '#ffb04a',
+    sunIntensity: 6.2,
+    hemiSky: '#8eb0d4',
+    hemiGround: '#1a3a18',
+    ambient: 0.22,
+    fog: '#e7c48a',
+    fogDensity: 0.00022,
+    fogHeight: 12,
+    skyTop: '#16345c',
+    skyHorizon: '#ffb03a',
+    skyBottom: '#c46a28',
+    cloud: 0.85,
     stars: 0,
     grade: 1,
   },
   dawn: {
     id: 'dawn',
-    sunDir: new Vector3(-0.72, 0.14, 0.68).normalize(),
-    sunColor: '#ffc2a2',
-    sunIntensity: 3.1,
-    hemiSky: '#f0c2b0',
-    hemiGround: '#1c2618',
-    ambient: 0.34,
-    fog: '#d8b0a0',
-    fogDensity: 0.0007,
-    fogHeight: 18,
-    skyTop: '#6a88a8',
-    skyHorizon: '#ffd0b4',
-    skyBottom: '#c48878',
-    cloud: 0.4,
+    sunDir: new Vector3(-0.62, 0.12, 0.78).normalize(),
+    sunColor: '#ffc27a',
+    sunIntensity: 4.6,
+    hemiSky: '#9eb8d0',
+    hemiGround: '#1c3a1c',
+    ambient: 0.26,
+    fog: '#d8c4a4',
+    fogDensity: 0.00026,
+    fogHeight: 10,
+    skyTop: '#3d6a90',
+    skyHorizon: '#ffc48a',
+    skyBottom: '#c48858',
+    cloud: 0.72,
     stars: 0,
-    grade: 0.65,
+    grade: 0.35,
   },
   night: {
     id: 'night',
@@ -90,11 +90,12 @@ export function applyTime(
   shared.uFogColor.value.set(p.fog);
   shared.uFogDensity.value = p.fogDensity;
   shared.uFogHeight.value = p.fogHeight;
+  shared.uFogFalloff.value = id === 'night' ? 0.03 : 0.055;
   sun.color.set(p.sunColor);
   sun.intensity = p.sunIntensity;
   hemi.color.set(p.hemiSky);
   hemi.groundColor.set(p.hemiGround);
-  hemi.intensity = 0.85;
+  hemi.intensity = id === 'night' ? 0.35 : 1.05;
   ambient.color.set('#fff4e5');
   ambient.intensity = p.ambient;
   return p;

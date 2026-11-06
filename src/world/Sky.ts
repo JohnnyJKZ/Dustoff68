@@ -41,8 +41,8 @@ float fbm(vec2 p){
 void main() {
   vec3 dir = normalize(vDir);
   float h = dir.y;
-  vec3 col = mix(uBottom, uHorizon, smoothstep(-0.2, 0.08, h));
-  col = mix(col, uTop, smoothstep(0.0, 0.72, h));
+  vec3 col = mix(uBottom, uHorizon, smoothstep(-0.08, 0.16, h));
+  col = mix(col, uTop, smoothstep(0.05, 0.55, h));
 
   float sunD = dot(dir, normalize(uSunDir));
   float disc = smoothstep(0.9992, 0.9998, sunD);
@@ -56,8 +56,8 @@ void main() {
 
   vec2 cuv = dir.xz / max(h + 0.35, 0.15);
   float c = fbm(cuv * 1.6 + vec2(uTime * 0.012, 0.0));
-  float clouds = smoothstep(0.48, 0.78, c) * uCloud * smoothstep(-0.05, 0.25, h);
-  vec3 cloudCol = mix(uSunColor, vec3(0.85), 0.35);
+  float clouds = smoothstep(0.4, 0.7, c) * uCloud * smoothstep(-0.04, 0.06, h) * (1.0 - smoothstep(0.42, 0.75, h));
+  vec3 cloudCol = mix(uSunColor, vec3(1.0, 0.92, 0.75), 0.45);
   cloudCol = mix(cloudCol * 0.35, cloudCol, smoothstep(0.0, 0.4, sunD));
   col = mix(col, cloudCol, clouds * 0.72);
 

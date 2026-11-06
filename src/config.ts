@@ -100,9 +100,9 @@ export const config = {
   },
 
   graphics: {
-    treeCap: 8200,
-    grassCap: 2800,
-    riceCap: 2200,
+    treeCap: 10000,
+    grassCap: 4200,
+    riceCap: 2600,
     treeCell: 128,
     grassRadius: 210,
     treeRadius: 1050,

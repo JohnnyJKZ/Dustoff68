@@ -13,27 +13,28 @@ import { clamp } from '../util/math';
 import { sample, type Surface } from './heightfield';
 
 const COL = {
-  grass: new Color('#4d7c3a'),
-  jungle: new Color('#1e331c'),
-  dirt: new Color('#8a4d34'),
-  mud: new Color('#5c4a34'),
-  pad: new Color('#7a6548'),
-  paddy: new Color('#8a9140'),
-  rock: new Color('#7a736a'),
-  waterbed: new Color('#3e3428'),
+  grass: new Color('#5eae46'),
+  jungle: new Color('#1f6b34'),
+  dirt: new Color('#8d4a2a'),
+  mud: new Color('#6a5030'),
+  pad: new Color('#8a6a40'),
+  paddy: new Color('#7ea04a'),
+  rock: new Color('#6d655c'),
+  waterbed: new Color('#2e4630'),
 };
 const tmp = new Color();
 
 function tint(s: Surface, out: Color): void {
+  const steep = 1 - s.normal.y;
   out.copy(COL.grass);
   tmp.copy(COL.jungle);
-  out.lerp(tmp, clamp(s.jungle, 0, 1));
+  out.lerp(tmp, clamp(s.jungle * 0.55, 0, 1));
   tmp.copy(COL.dirt);
-  out.lerp(tmp, clamp((s.slope - 0.25) / 0.45, 0, 1));
+  out.lerp(tmp, clamp((steep - 0.42) / 0.28, 0, 1));
   tmp.copy(COL.rock);
-  out.lerp(tmp, clamp((s.height - 70) / 140, 0, 1) * 0.75);
+  out.lerp(tmp, clamp((steep - 0.62) / 0.22, 0, 1));
   tmp.copy(COL.mud);
-  out.lerp(tmp, clamp(s.mud, 0, 1));
+  out.lerp(tmp, clamp(s.mud, 0, 1) * 0.28);
   tmp.copy(COL.paddy);
   out.lerp(tmp, clamp(s.paddy, 0, 1));
   tmp.copy(COL.pad);
@@ -60,8 +61,9 @@ export class Terrain {
     const count = config.world.chunkCount;
     this.size = config.world.mapSize / count;
     this.material = new MeshStandardMaterial({
+      color: '#3f9a3c',
       vertexColors: true,
-      roughness: 0.96,
+      roughness: 0.88,
       metalness: 0,
     });
     styleMaterial(this.material, 'terrain');
@@ -120,7 +122,7 @@ export class Terrain {
       mesh = new Mesh(geo, this.material);
       mesh.position.set(chunk.ox, 0, chunk.oz);
       mesh.receiveShadow = true;
-      mesh.castShadow = true;
+      mesh.castShadow = false;
       mesh.matrixAutoUpdate = true;
       this.group.add(mesh);
       chunk.built[lod] = mesh;

@@ -41,7 +41,7 @@ export class Smoke {
   baseY = 0;
 
   constructor() {
-    const n = 70;
+    const n = 140;
     const pos = new Float32Array(n * 3);
     this.ages = new Float32Array(n);
     this.seeds = new Float32Array(n);
@@ -53,7 +53,7 @@ export class Smoke {
     geo.setAttribute('position', new Float32BufferAttribute(pos, 3));
     geo.setAttribute('aAge', new Float32BufferAttribute(this.ages, 1));
     const mat = new ShaderMaterial({
-      uniforms: { uColor: { value: this.color }, uSize: { value: 18 } },
+      uniforms: { uColor: { value: this.color }, uSize: { value: 46 } },
       vertexShader: VERT,
       fragmentShader: FRAG,
       transparent: true,
@@ -84,10 +84,10 @@ export class Smoke {
       a[i] += dt * 0.13;
       if (a[i] > 1) a[i] = 0;
       const t = a[i]!;
-      const sway = Math.sin(this.seeds[i]! + t * 6) * t * 2.2;
-      p[i * 3] = sway + windX * t * 0.35;
-      p[i * 3 + 1] = this.baseY + t * 28;
-      p[i * 3 + 2] = Math.cos(this.seeds[i]! + t * 5) * t * 2.2 + windZ * t * 0.35;
+      const sway = Math.sin(this.seeds[i]! + t * 6) * t * 4.5;
+      p[i * 3] = sway + windX * t * 0.6;
+      p[i * 3 + 1] = this.baseY + t * 52;
+      p[i * 3 + 2] = Math.cos(this.seeds[i]! + t * 5) * t * 4.5 + windZ * t * 0.6;
     }
     pos.needsUpdate = true;
     age.needsUpdate = true;
